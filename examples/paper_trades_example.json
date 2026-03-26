@@ -1,0 +1,38 @@
+[
+  {
+    "id": 1,
+    "type": "BUY",
+    "symbol": "PTT",
+    "shares": 163,
+    "price": 30.49,
+    "total_cost": 4982.21,
+    "fee": 12.5,
+    "conviction": 8,
+    "reason": "BUY",
+    "timestamp": "2026-01-12T09:00:00+00:00"
+  },
+  {
+    "id": 2,
+    "type": "BUY",
+    "symbol": "KBANK",
+    "shares": 26,
+    "price": 191.5,
+    "total_cost": 4991.49,
+    "fee": 12.49,
+    "conviction": 7,
+    "reason": "BUY",
+    "timestamp": "2026-01-12T09:00:00+00:00"
+  },
+  {
+    "id": 3,
+    "type": "BUY",
+    "symbol": "ADVANC",
+    "shares": 15,
+    "price": 327.19,
+    "total_cost": 4920.28,
+    "fee": 12.49,
+    "conviction": 7,
+    "reason": "BUY",
+    "timestamp": "2026-01-26T09:00:00+00:00"
+  }
+]
