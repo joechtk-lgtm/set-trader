@@ -20,7 +20,7 @@ from signals.ai_signal import analyze_stock
 from portfolio.paper_trader import PaperTrader
 from logs.logger import Logger
 
-_logger = Logger()
+_logger = Logger()  # default source="auto"; callers override via screen_universe(source=...)
 
 _JSONL_PATH = "logs/trading.jsonl"
 
@@ -117,7 +117,7 @@ def check_conviction_drops(
     return sold
 
 
-def screen_universe(symbols: list = None, use_ai: bool = True, top_n: int = 5) -> list:
+def screen_universe(symbols: list = None, use_ai: bool = True, top_n: int = 5, source: str = "auto") -> list:
     """
     Full screening pipeline:
     1. Fetch fundamentals for all symbols
@@ -142,6 +142,7 @@ def screen_universe(symbols: list = None, use_ai: bool = True, top_n: int = 5) -
     print(f"  Universe: {len(symbols)} stocks | AI analysis: {use_ai}")
     print(f"{'='*60}")
 
+    _logger.source = source
     _logger.screen_start(universe=symbols, use_ai=use_ai)
 
     results = []
@@ -234,7 +235,6 @@ def screen_universe(symbols: list = None, use_ai: bool = True, top_n: int = 5) -
                 r["ai"] = None
                 continue
 
-            if is_bank_model:
             ai_result = analyze_stock(
                 symbol       = symbol,
                 fundamentals = r["fundamentals"],
@@ -304,10 +304,6 @@ def auto_trade(
     # First: check stop-losses on existing positions
     print("\nChecking stop-losses on open positions...")
     triggers = trader.check_stop_losses()
-    _logger.stop_loss_check(
-        positions_checked=len(trader.portfolio["positions"]),
-        triggered=[t["symbol"] for t in triggers],
-    )
     for trigger in triggers:
         print(f"  ! {trigger['symbol']}: {trigger['reason']}")
         if not dry_run:

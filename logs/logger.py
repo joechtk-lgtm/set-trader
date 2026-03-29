@@ -21,8 +21,9 @@ class Logger:
         logger.screen_start(symbols=["PTT", "ADVANC"], use_ai=True)
     """
 
-    def __init__(self, path: str = "logs/trading.jsonl"):
+    def __init__(self, path: str = "logs/trading.jsonl", source: str = "auto"):
         self.path = path
+        self.source = source          # "manual" or "auto"
         os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
 
     # ── Core writer ───────────────────────────────────────────────────────────
@@ -31,6 +32,7 @@ class Logger:
         entry = {
             "timestamp":  datetime.now(timezone.utc).isoformat(),
             "event_type": event_type,
+            "source":     fields.pop("source", self.source),
             **fields,
         }
         with open(self.path, "a", encoding="utf-8") as f:
@@ -230,12 +232,12 @@ class Logger:
 
     # ── Error events ──────────────────────────────────────────────────────────
 
-    def error(self, source: str, message: str, exc: Exception = None):
+    def error(self, error_source: str, message: str, exc: Exception = None):
         """Logged whenever an exception is caught."""
         trace = _tb.format_exc() if exc else None
         self._write(
             "ERROR",
-            source=source,
+            error_source=error_source,
             message=str(message),
             traceback=trace,
         )

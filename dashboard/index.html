@@ -6,7 +6,7 @@
   <title>SET AI Trader — Dashboard</title>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
   <style>
-    /* ── Reset & tokens ─────────────────────────────────────────── */
+    /* ── Reset & tokens ���────────────────────────────────────────── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
@@ -22,6 +22,7 @@
       --yellow:    #d29922;
       --blue:      #58a6ff;
       --purple:    #bc8cff;
+      --orange:    #d18616;
       --text:      #e6edf3;
       --muted:     #7d8590;
       --dim:       #484f58;
@@ -35,19 +36,20 @@
     body { background: var(--bg); color: var(--text); font-family: var(--sans);
            min-height: 100vh; line-height: 1.5; }
 
-    /* ── Scrollbars ──────────────────────────────────────────────── */
+    /* ── Scrollbars ───────���──────────────────────────────────────── */
     ::-webkit-scrollbar        { width:6px; height:6px; }
     ::-webkit-scrollbar-track  { background: var(--bg); }
     ::-webkit-scrollbar-thumb  { background: var(--border); border-radius:3px; }
 
-    /* ── Header ─────────────────────────────────────────────────── */
+    /* ── Header ───────��─────────────────────────────────────────── */
     .hdr {
       position: sticky; top: 0; z-index: 100;
       background: rgba(13,17,23,0.95); backdrop-filter: blur(12px);
       border-bottom: 1px solid var(--border);
-      height: 58px; padding: 0 24px;
-      display: flex; align-items: center; gap: 20px;
+      padding: 8px 24px;
+      display: flex; flex-direction: column; gap: 6px;
     }
+    .hdr-top { display: flex; align-items: center; gap: 20px; }
 
     .hdr-brand { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
     .hdr-brand .pulse {
@@ -59,7 +61,7 @@
     .hdr-brand h1 { font-size:15px; font-weight:700; letter-spacing:.3px; }
     .hdr-brand sub { font-size:10px; color:var(--muted); font-family:var(--mono); display:block; }
 
-    .hdr-kpis { display:flex; gap:4px; flex:1; min-width:0; }
+    .hdr-kpis { display:flex; gap:4px; flex:1; min-width:0; flex-wrap:wrap; }
     .kpi-chip {
       padding: 4px 14px; border-radius: 20px;
       border: 1px solid var(--border); background: var(--surface);
@@ -70,6 +72,7 @@
     .val.g { color: var(--green); }
     .val.r { color: var(--red); }
     .val.b { color: var(--blue); }
+    .val.m { color: var(--muted); }
 
     .hdr-ctrl { margin-left:auto; display:flex; flex-direction:column; align-items:flex-end; flex-shrink:0; gap:2px; }
     .btn-refresh {
@@ -80,17 +83,23 @@
     .btn-refresh:hover { border-color:var(--green); color:var(--green); }
     .upd-ts { font-size:10px; color:var(--dim); font-family:var(--mono); }
 
-    /* ── Layout ──────────────────────────────────────────────────── */
+    /* ── Performance metrics row ──────────────────────────────────── */
+    .hdr-perf { display:flex; gap:4px; flex-wrap:wrap; }
+    .kpi-chip[title] { cursor:help; }
+
+    /* ── Layout ───���──────────────────────────────────��───────────── */
     .wrap { max-width:1600px; margin:0 auto; padding:20px 24px 48px; display:grid; gap:16px; }
     .r2 { display:grid; grid-template-columns:1fr 380px; gap:16px; }
+    .r2e { display:grid; grid-template-columns:1fr 340px; gap:16px; }
     .r3 { display:grid; grid-template-columns:1fr 360px; gap:16px; }
-    @media(max-width:1100px) { .r2,.r3 { grid-template-columns:1fr; } }
+    @media(max-width:1100px) { .r2,.r2e,.r3 { grid-template-columns:1fr; } }
 
-    /* ── Card ────────────────────────────────────────────────────── */
+    /* ── Card ─────��──────────────────────────────────────────────── */
     .card { background:var(--surface); border:1px solid var(--border); border-radius:var(--rl); overflow:hidden; }
     .card-h {
       padding:13px 20px; border-bottom:1px solid var(--border-d);
       display:flex; align-items:center; justify-content:space-between; gap:12px;
+      flex-wrap:wrap;
     }
     .card-h h2 { font-size:12px; font-weight:600; letter-spacing:.4px; color:var(--text); }
     .pill { font-size:10px; font-family:var(--mono); color:var(--muted);
@@ -99,16 +108,22 @@
 
     /* ── Chart ───────────────────────────────────────────────────── */
     .chart-box { padding:16px 20px 20px; height:230px; position:relative; }
+    .chart-box-sm { padding:12px 20px 16px; height:160px; position:relative; }
 
-    /* ── Tables ──────────────────────────────────────────────────── */
+    /* ── Tables ──────���─────────────────────────────────���─────────── */
     .tbl-box { overflow-x:auto; padding:0 20px 16px; }
     table { width:100%; border-collapse:collapse; font-size:12.5px; }
     thead th {
       font-size:10px; font-weight:600; text-transform:uppercase; letter-spacing:.8px;
       color:var(--muted); padding:8px 10px; text-align:right;
       border-bottom:1px solid var(--border-d); white-space:nowrap;
+      cursor:default;
     }
     thead th:first-child { text-align:left; }
+    thead th.sortable { cursor:pointer; }
+    thead th.sortable:hover { color:var(--blue); }
+    thead th.sorted-asc::after { content:' ▲'; color:var(--blue); }
+    thead th.sorted-desc::after { content:' ▼'; color:var(--blue); }
     tbody td {
       padding:9px 10px; text-align:right; border-bottom:1px solid var(--border-d);
       font-family:var(--mono); color:var(--text); white-space:nowrap;
@@ -116,6 +131,7 @@
     tbody td:first-child { text-align:left; font-weight:600; color:var(--blue); }
     tbody tr:last-child td { border-bottom:none; }
     tbody tr:hover td { background:var(--surface2); }
+    tbody tr.trade-row { cursor:pointer; }
     .g { color:var(--green)!important; }
     .r { color:var(--red)!important; }
 
@@ -128,7 +144,50 @@
     .th { background:var(--surface2); color:var(--muted); }
     .ty { background:rgba(210,153,34,.12); color:var(--yellow); }
 
-    /* ── Heatmap ─────────────────────────────────────────────────── */
+    /* ── Trade detail expansion ──────────────────────────────────── */
+    .trade-detail {
+      display:none; background:var(--surface2); border-bottom:1px solid var(--border-d);
+    }
+    .trade-detail.open { display:table-row; }
+    .trade-detail td {
+      padding:14px 20px; text-align:left; font-family:var(--sans);
+      color:var(--muted); font-size:12px; line-height:1.65;
+    }
+    .td-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 24px; }
+    .td-grid .td-label { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.5px; font-family:var(--mono); }
+    .td-grid .td-val { font-size:12px; color:var(--text); font-family:var(--mono); }
+    .td-reason { margin-top:10px; padding-top:10px; border-top:1px solid var(--border-d); }
+    .td-reason p { font-size:12px; color:var(--muted); line-height:1.6; }
+
+    /* ── Pagination & filters ──────────────────────────────────────── */
+    .filter-bar {
+      display:flex; align-items:center; gap:8px; padding:10px 20px;
+      border-bottom:1px solid var(--border-d); flex-wrap:wrap;
+    }
+    .filter-bar select, .filter-bar input[type="date"] {
+      background:var(--surface2); border:1px solid var(--border);
+      color:var(--text); font-size:11px; font-family:var(--mono);
+      padding:4px 8px; border-radius:4px; outline:none;
+    }
+    .filter-bar select:focus, .filter-bar input[type="date"]:focus {
+      border-color:var(--blue);
+    }
+    .filter-bar label { font-size:10px; color:var(--muted); font-family:var(--mono); text-transform:uppercase; letter-spacing:.5px; }
+    .pager {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:8px 20px; border-top:1px solid var(--border-d);
+      font-size:11px; font-family:var(--mono); color:var(--muted);
+    }
+    .pager-btns { display:flex; gap:4px; }
+    .pager-btn {
+      background:none; border:1px solid var(--border); color:var(--muted);
+      font-size:11px; font-family:var(--mono); padding:2px 10px; border-radius:4px;
+      cursor:pointer; transition:all .15s;
+    }
+    .pager-btn:hover:not(:disabled) { border-color:var(--blue); color:var(--blue); }
+    .pager-btn:disabled { opacity:.3; cursor:default; }
+
+    /* ── Heatmap ────────────────────��────────────────────────────── */
     .heat-grid { padding:14px 18px; display:flex; flex-wrap:wrap; gap:10px; }
     .sig-card {
       background:var(--surface2); border:1px solid var(--border-d); border-radius:var(--r);
@@ -173,7 +232,7 @@
       padding:2px 7px; border-radius:4px;
     }
 
-    /* ── Terminal / Activity log ─────────────────────────────────── */
+    /* ── Terminal / Activity log ─────────────────────────────���───── */
     .terminal {
       padding:10px 14px; max-height:380px; overflow-y:auto;
       font-family:var(--mono); font-size:11px; line-height:1.75;
@@ -182,7 +241,7 @@
     .terminal::-webkit-scrollbar-thumb { background:var(--border); }
     .log-row { display:flex; gap:9px; padding:1px 0; border-bottom:1px solid rgba(48,54,61,.35); }
     .log-row:last-child { border-bottom:none; }
-    .log-ts { color:var(--dim); flex-shrink:0; width:78px; }
+    .log-ts { color:var(--dim); flex-shrink:0; width:105px; }
     .log-ev { flex-shrink:0; width:140px; font-weight:600; }
     .log-ev.SCREEN_START        { color:var(--blue); }
     .log-ev.SCREEN_RESULT       { color:#79c0ff; }
@@ -191,10 +250,35 @@
     .log-ev.STOP_LOSS_CHECK     { color:var(--yellow); }
     .log-ev.STOP_LOSS_TRIGGERED { color:var(--red); }
     .log-ev.PORTFOLIO_SNAPSHOT  { color:#58a6ff; }
+    .log-ev.WEEKLY_SCREEN       { color:#58a6ff; }
+    .log-ev.BUY                 { color:var(--green); }
+    .log-ev.SELL                { color:var(--red); }
+    .log-ev.TAKE_PROFIT_TRIGGERED { color:var(--green); }
+    .log-ev.CONVICTION_DROP_SELL  { color:var(--yellow); }
+    .log-ev.XD_GUARD_TRIGGERED   { color:var(--yellow); }
     .log-ev.ERROR               { color:var(--red); font-weight:700; }
     .log-msg { color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; }
 
-    /* ── Notices & empty ─────────────────────────────────────────── */
+    /* ── Log filter toggle ─────────────────────────────────────────── */
+    .log-filter { display:flex; gap:2px; }
+    .log-btn {
+      background:none; border:1px solid var(--border); color:var(--muted);
+      font-size:10px; font-family:var(--mono); padding:2px 10px; border-radius:4px;
+      cursor:pointer; transition:all .15s; letter-spacing:.3px;
+    }
+    .log-btn:hover { border-color:var(--blue); color:var(--blue); }
+    .log-btn.active { background:rgba(88,166,255,.12); border-color:var(--blue); color:var(--blue); font-weight:600; }
+
+    /* ── Stop-loss proximity dot ──────────────────────────────────── */
+    .sl-dot {
+      display:inline-block; width:7px; height:7px; border-radius:50%;
+      margin-right:5px; vertical-align:middle;
+    }
+    .sl-dot.sl-green  { background:var(--green); box-shadow:0 0 4px var(--green); }
+    .sl-dot.sl-yellow { background:var(--yellow); box-shadow:0 0 4px var(--yellow); }
+    .sl-dot.sl-red    { background:var(--red); box-shadow:0 0 4px var(--red); }
+
+    /* ── Notices & empty ─────────────────────────��───────────────── */
     .notice {
       background:rgba(88,166,255,.06); border:1px solid rgba(88,166,255,.2);
       border-radius:var(--r); padding:9px 16px; font-size:12px; color:var(--blue);
@@ -209,21 +293,31 @@
 
 <!-- Header -->
 <header class="hdr">
-  <div class="hdr-brand">
-    <div class="pulse"></div>
-    <div><h1>SET AI Trader</h1><sub>Paper Trading Dashboard</sub></div>
+  <div class="hdr-top">
+    <div class="hdr-brand">
+      <div class="pulse"></div>
+      <div><h1>SET AI Trader</h1><sub>Paper Trading Dashboard</sub></div>
+    </div>
+
+    <div class="hdr-kpis">
+      <div class="kpi-chip"><span class="lbl">Total Value</span><span class="val b" id="h-val">—</span></div>
+      <div class="kpi-chip"><span class="lbl">Return</span><span class="val" id="h-ret">���</span></div>
+      <div class="kpi-chip"><span class="lbl">Cash</span><span class="val" id="h-cash">—</span></div>
+      <div class="kpi-chip"><span class="lbl">Positions</span><span class="val" id="h-pos">—</span></div>
+    </div>
+
+    <div class="hdr-ctrl">
+      <button class="btn-refresh" onclick="refresh()">&#x27F3; Refresh</button>
+      <div class="upd-ts" id="upd-ts">loading...</div>
+    </div>
   </div>
 
-  <div class="hdr-kpis">
-    <div class="kpi-chip"><span class="lbl">Total Value</span><span class="val b" id="h-val">—</span></div>
-    <div class="kpi-chip"><span class="lbl">Return</span><span class="val" id="h-ret">—</span></div>
-    <div class="kpi-chip"><span class="lbl">Cash</span><span class="val" id="h-cash">—</span></div>
-    <div class="kpi-chip"><span class="lbl">Positions</span><span class="val" id="h-pos">—</span></div>
-  </div>
-
-  <div class="hdr-ctrl">
-    <button class="btn-refresh" onclick="refresh()">⟳ Refresh</button>
-    <div class="upd-ts" id="upd-ts">loading…</div>
+  <!-- Performance metrics row -->
+  <div class="hdr-perf" id="hdr-perf">
+    <div class="kpi-chip" id="kpi-winrate" title="No closed trades yet"><span class="lbl">Win Rate</span><span class="val m" id="h-winrate">—</span></div>
+    <div class="kpi-chip" id="kpi-drawdown" title="Largest peak-to-trough decline"><span class="lbl">Max Drawdown</span><span class="val m" id="h-drawdown">—</span></div>
+    <div class="kpi-chip" id="kpi-avghold" title="No closed trades yet"><span class="lbl">Avg Holding</span><span class="val m" id="h-avghold">—</span></div>
+    <div class="kpi-chip" id="kpi-realpl" title="No closed trades yet"><span class="lbl">Realized P&L</span><span class="val m" id="h-realpl">—</span></div>
   </div>
 </header>
 
@@ -231,9 +325,9 @@
 <div class="wrap">
 
   <div class="notice">
-    ℹ Serve from project root:&nbsp; <strong>python -m http.server 8080</strong>
-    &nbsp;→&nbsp; open <strong>http://localhost:8080/dashboard/</strong>
-    &nbsp;·&nbsp; auto-refreshes every 60 s
+    &#x2139; Serve from project root:&nbsp; <strong>python -m http.server 8080</strong>
+    &nbsp;&rarr;&nbsp; open <strong>http://localhost:8080/dashboard/</strong>
+    &nbsp;&middot;&nbsp; auto-refreshes every 60 s
   </div>
 
   <!-- Equity curve -->
@@ -243,6 +337,26 @@
       <span class="pill" id="eq-badge">0 snapshots</span>
     </div>
     <div class="chart-box"><canvas id="eq-chart"></canvas></div>
+  </div>
+
+  <!-- Drawdown chart + Allocation donut -->
+  <div class="r2e">
+    <div class="card">
+      <div class="card-h">
+        <h2>Drawdown</h2>
+        <span class="pill" id="dd-badge">—</span>
+      </div>
+      <div class="chart-box-sm"><canvas id="dd-chart"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-h">
+        <h2>Portfolio Allocation</h2>
+        <span class="pill" id="alloc-badge">—</span>
+      </div>
+      <div class="chart-box-sm" style="display:flex;align-items:center;justify-content:center;">
+        <canvas id="alloc-chart" style="max-width:260px;max-height:260px;"></canvas>
+      </div>
+    </div>
   </div>
 
   <!-- Positions + AI Insights -->
@@ -267,57 +381,123 @@
 
   <!-- Trade history + Activity log -->
   <div class="r3">
-    <div class="card">
-      <div class="card-h"><h2>Trade History</h2><span class="pill">Last 20</span></div>
+    <div class="card" id="trades-card">
+      <div class="card-h"><h2>Trade History</h2><span class="pill" id="trades-badge">0 trades</span></div>
+      <div class="filter-bar" id="trades-filters">
+        <label>Symbol</label>
+        <select id="tf-sym" onchange="renderTradesPage()"><option value="">All</option></select>
+        <label>Action</label>
+        <select id="tf-action" onchange="renderTradesPage()">
+          <option value="">All</option><option value="BUY">Buy</option><option value="SELL">Sell</option>
+        </select>
+        <label>From</label>
+        <input type="date" id="tf-from" onchange="renderTradesPage()" />
+        <label>To</label>
+        <input type="date" id="tf-to" onchange="renderTradesPage()" />
+      </div>
       <div id="trades-wrap" class="tbl-box"><div class="empty">No trades executed yet</div></div>
+      <div class="pager" id="trades-pager" style="display:none">
+        <span id="trades-pager-info">—</span>
+        <div class="pager-btns">
+          <button class="pager-btn" id="tp-prev" onclick="tradesPgPrev()">Prev</button>
+          <button class="pager-btn" id="tp-next" onclick="tradesPgNext()">Next</button>
+        </div>
+      </div>
     </div>
-    <div class="card">
-      <div class="card-h"><h2>Activity Log</h2><span class="pill">Last 20 events</span></div>
+    <div class="card" id="log-card">
+      <div class="card-h">
+        <h2>Activity Log</h2>
+        <div class="log-filter">
+          <button class="log-btn active" data-filter="manual" onclick="setLogFilter('manual')">My Actions</button>
+          <button class="log-btn" data-filter="all" onclick="setLogFilter('all')">All</button>
+        </div>
+        <span class="pill" id="log-badge">0 events</span>
+      </div>
+      <div class="filter-bar" id="log-filters">
+        <label>Type</label>
+        <select id="lf-type" onchange="renderLogPage()">
+          <option value="">All</option>
+          <option value="SCREEN_START">SCREEN_START</option>
+          <option value="SCREEN_RESULT">SCREEN_RESULT</option>
+          <option value="AI_ANALYSIS">AI_ANALYSIS</option>
+          <option value="TRADE_EXECUTED">TRADE_EXECUTED</option>
+          <option value="BUY">BUY</option>
+          <option value="SELL">SELL</option>
+          <option value="STOP_LOSS_CHECK">STOP_LOSS_CHECK</option>
+          <option value="STOP_LOSS_TRIGGERED">STOP_LOSS_TRIGGERED</option>
+          <option value="TAKE_PROFIT_TRIGGERED">TAKE_PROFIT_TRIGGERED</option>
+          <option value="CONVICTION_DROP_SELL">CONVICTION_DROP_SELL</option>
+          <option value="XD_GUARD_TRIGGERED">XD_GUARD_TRIGGERED</option>
+          <option value="PORTFOLIO_SNAPSHOT">PORTFOLIO_SNAPSHOT</option>
+          <option value="WEEKLY_SCREEN">WEEKLY_SCREEN</option>
+          <option value="ERROR">ERROR</option>
+        </select>
+        <label>From</label>
+        <input type="date" id="lf-from" onchange="renderLogPage()" />
+        <label>To</label>
+        <input type="date" id="lf-to" onchange="renderLogPage()" />
+      </div>
       <div class="terminal" id="act-log"><div class="empty">No events yet</div></div>
+      <div class="pager" id="log-pager" style="display:none">
+        <span id="log-pager-info">—</span>
+        <div class="pager-btns">
+          <button class="pager-btn" id="lp-prev" onclick="logPgPrev()">Prev</button>
+          <button class="pager-btn" id="lp-next" onclick="logPgNext()">Next</button>
+        </div>
+      </div>
     </div>
   </div>
 
 </div><!-- /wrap -->
 
 <script>
-// ── Config ───────────────────────────────────────────────────────────────────
-const LOG_PATH  = '../logs/trading.jsonl';
-const PORT_PATH = '../data/portfolio.json';
-const TICK_MS   = 60_000;
+// ── Config ─────��─────────────────────────────────────────────────────────────
+const LOG_PATH    = '../logs/trading.jsonl';
+const PORT_PATH   = '../data/portfolio.json';
+const TRADES_PATH = '../data/paper_trades.json';
+const TICK_MS     = 60_000;
+const TRADES_PER_PAGE = 20;
+const LOGS_PER_PAGE   = 30;
+const PT = 'America/Los_Angeles';
 
-let _chart = null;
-let _countdown = TICK_MS / 1000;
+let _eqChart    = null;
+let _ddChart    = null;
+let _allocChart = null;
+let _countdown  = TICK_MS / 1000;
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
+// ── Helpers ────────��─────────────────────────────────────────────────────────
 const thb = v =>
-  '฿' + Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  '\u0E3F' + Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const pct = v => (v >= 0 ? '+' : '') + Number(v).toFixed(2) + '%';
 const dt  = iso => {
   const d = new Date(iso);
-  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
-       + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', timeZone: PT })
+       + ' ' + d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: PT });
 };
-const tm  = iso => new Date(iso).toLocaleTimeString('en-GB',
-  { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const tm  = iso => new Date(iso).toLocaleString('en-GB',
+  { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: PT });
 const days = iso => Math.floor((Date.now() - new Date(iso)) / 86_400_000);
+const isoDate = iso => iso ? iso.substring(0, 10) : '';
 
-// ── Data ─────────────────────────────────────────────────────────────────────
+// ── Data ──���──────────────────────────────────────────────────────────────────
 async function load() {
   const bust = '?_=' + Date.now();
-  const [rLog, rPort] = await Promise.allSettled([
-    fetch(LOG_PATH  + bust).then(r => r.ok ? r.text()  : ''),
-    fetch(PORT_PATH + bust).then(r => r.ok ? r.json()  : null),
+  const [rLog, rPort, rTrades] = await Promise.allSettled([
+    fetch(LOG_PATH    + bust).then(r => r.ok ? r.text() : ''),
+    fetch(PORT_PATH   + bust).then(r => r.ok ? r.json() : null),
+    fetch(TRADES_PATH + bust).then(r => r.ok ? r.json() : null),
   ]);
-  const raw  = rLog.status  === 'fulfilled' ? rLog.value   : '';
-  const port = rPort.status === 'fulfilled' ? rPort.value  : null;
+  const raw    = rLog.status    === 'fulfilled' ? rLog.value    : '';
+  const port   = rPort.status   === 'fulfilled' ? rPort.value   : null;
+  const trades = rTrades.status === 'fulfilled' ? rTrades.value : null;
   const events = raw.trim().split('\n')
     .filter(l => l.trim())
     .map(l => { try { return JSON.parse(l); } catch { return null; } })
     .filter(Boolean);
-  return { events, port };
+  return { events, port, trades };
 }
 
-// ── Header ───────────────────────────────────────────────────────────────────
+// ── Header ─────────���─────────────────────────��───────────────────────────────
 function renderHeader(events, port) {
   const snaps = events.filter(e => e.event_type === 'PORTFOLIO_SNAPSHOT');
   const last  = snaps.at(-1);
@@ -337,8 +517,6 @@ function renderHeader(events, port) {
               : 0;
     npos  = Object.keys(port.positions || {}).length;
   }
-  // portfolio.json is always ground-truth for open positions; JSONL snapshots
-  // can be stale (e.g. snapped after a test-sell that was later reversed).
   if (port) npos = Object.keys(port.positions || {}).length;
 
   if (total !== null) $('h-val').textContent = thb(total);
@@ -351,10 +529,67 @@ function renderHeader(events, port) {
   if (npos  !== null) $('h-pos').textContent  = npos + ' / 5';
 
   $('upd-ts').textContent = 'Updated ' + new Date().toLocaleTimeString('en-GB')
-    + ' · next in ' + _countdown + 's';
+    + ' \u00b7 next in ' + _countdown + 's';
 }
 
-// ── Equity Curve ──────────────────────────────────────────────────────────────
+// ─��� Performance Metrics ────��─────────────────────────────────────────────────
+function renderPerfMetrics(events, trades) {
+  // Collect closed trades from both sources
+  const sells = [];
+  // paper_trades.json SELL entries
+  if (trades) trades.filter(t => t.type === 'SELL').forEach(t => sells.push(t));
+  // JSONL TRADE_EXECUTED sells and legacy SELL events
+  events.filter(e =>
+    (e.event_type === 'TRADE_EXECUTED' && e.action === 'SELL') ||
+    e.event_type === 'SELL'
+  ).forEach(e => {
+    if (!sells.find(s => s.timestamp === e.timestamp && s.symbol === e.symbol)) {
+      sells.push(e);
+    }
+  });
+
+  const wrEl = $('h-winrate');
+  const ddEl = $('h-drawdown');
+  const ahEl = $('h-avghold');
+  const rpEl = $('h-realpl');
+
+  if (sells.length > 0) {
+    const wins = sells.filter(t => (t.realized_pl ?? t.pnl_thb ?? 0) > 0);
+    const wr = (wins.length / sells.length * 100);
+    wrEl.textContent = wr.toFixed(0) + '%';
+    wrEl.className = 'val ' + (wr >= 50 ? 'g' : 'r');
+    $('kpi-winrate').title = `${wins.length} wins / ${sells.length} closed trades`;
+
+    const totalRPL = sells.reduce((s, t) => s + (t.realized_pl ?? t.pnl_thb ?? 0), 0);
+    rpEl.textContent = (totalRPL >= 0 ? '+' : '') + thb(totalRPL);
+    rpEl.className = 'val ' + (totalRPL >= 0 ? 'g' : 'r');
+    $('kpi-realpl').title = `Sum of P&L from ${sells.length} closed trades`;
+
+    const holdDays = sells.filter(t => t.holding_days != null).map(t => t.holding_days);
+    if (holdDays.length) {
+      const avg = holdDays.reduce((a, b) => a + b, 0) / holdDays.length;
+      ahEl.textContent = avg.toFixed(0) + 'd';
+      ahEl.className = 'val b';
+      $('kpi-avghold').title = `Average across ${holdDays.length} closed trades`;
+    }
+  }
+
+  // Max drawdown from equity curve
+  const snaps = events.filter(e => e.event_type === 'PORTFOLIO_SNAPSHOT');
+  if (snaps.length >= 2) {
+    let peak = -Infinity, maxDD = 0;
+    for (const s of snaps) {
+      if (s.total_value > peak) peak = s.total_value;
+      const dd = (s.total_value - peak) / peak * 100;
+      if (dd < maxDD) maxDD = dd;
+    }
+    ddEl.textContent = maxDD.toFixed(2) + '%';
+    ddEl.className = 'val ' + (maxDD < -5 ? 'r' : maxDD < -2 ? 'y' : 'g');
+    $('kpi-drawdown').title = `Largest peak-to-trough decline`;
+  }
+}
+
+// ── Equity Curve ─────────��────────────────────────────────────────────────────
 function renderEquity(events) {
   const snaps  = events.filter(e => e.event_type === 'PORTFOLIO_SNAPSHOT');
   $('eq-badge').textContent = snaps.length + (snaps.length === 1 ? ' snapshot' : ' snapshots');
@@ -399,17 +634,153 @@ function renderEquity(events) {
              ticks: { color: '#484f58', font: { family: 'monospace', size: 10 }, maxTicksLimit: 8 } },
         y: { grid: { color: 'rgba(48,54,61,.4)' },
              ticks: { color: '#484f58', font: { family: 'monospace', size: 10 },
-                      callback: v => '฿' + (v / 1000).toFixed(1) + 'k' } },
+                      callback: v => '\u0E3F' + (v / 1000).toFixed(1) + 'k' } },
       },
     },
   };
 
-  if (_chart) {
-    _chart.data    = cfg.data;
-    _chart.options = cfg.options;
-    _chart.update();
+  if (_eqChart) {
+    _eqChart.data    = cfg.data;
+    _eqChart.options = cfg.options;
+    _eqChart.update();
   } else {
-    _chart = new Chart($('eq-chart').getContext('2d'), cfg);
+    _eqChart = new Chart($('eq-chart').getContext('2d'), cfg);
+  }
+}
+
+// ��─ Drawdown Chart ──────────��───────────────────────────────���────────────────
+function renderDrawdown(events) {
+  const snaps = events.filter(e => e.event_type === 'PORTFOLIO_SNAPSHOT');
+  if (snaps.length < 2) {
+    $('dd-badge').textContent = 'Need 2+ snapshots';
+    return;
+  }
+
+  const labels = snaps.map(e => dt(e.timestamp));
+  let peak = -Infinity, maxDD = 0, maxIdx = 0;
+  const ddVals = snaps.map((s, i) => {
+    if (s.total_value > peak) peak = s.total_value;
+    const dd = (s.total_value - peak) / peak * 100;
+    if (dd < maxDD) { maxDD = dd; maxIdx = i; }
+    return dd;
+  });
+
+  $('dd-badge').textContent = 'Max: ' + maxDD.toFixed(2) + '%';
+
+  const pointBg = ddVals.map((_, i) => i === maxIdx ? '#f85149' : 'transparent');
+  const pointR  = ddVals.map((_, i) => i === maxIdx ? 5 : 0);
+
+  const cfg = {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{
+        label: 'Drawdown %',
+        data: ddVals,
+        borderColor: '#d18616',
+        backgroundColor: ctx => {
+          const { chartArea, ctx: c } = ctx.chart;
+          if (!chartArea) return 'rgba(248,81,73,.1)';
+          const g = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+          g.addColorStop(0, 'rgba(248,81,73,.0)');
+          g.addColorStop(1, 'rgba(248,81,73,.20)');
+          return g;
+        },
+        fill: true, tension: .35, borderWidth: 1.5,
+        pointRadius: pointR, pointBackgroundColor: pointBg,
+        pointHoverRadius: 4,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1c2330', borderColor: '#30363d', borderWidth: 1,
+          titleColor: '#e6edf3', bodyColor: '#7d8590',
+          callbacks: { label: c => ' ' + c.raw.toFixed(2) + '%' },
+        },
+      },
+      scales: {
+        x: { display: false },
+        y: { grid: { color: 'rgba(48,54,61,.4)' },
+             ticks: { color: '#484f58', font: { family: 'monospace', size: 10 },
+                      callback: v => v.toFixed(1) + '%' },
+             max: 0.5 },
+      },
+    },
+  };
+
+  if (_ddChart) {
+    _ddChart.data    = cfg.data;
+    _ddChart.options = cfg.options;
+    _ddChart.update();
+  } else {
+    _ddChart = new Chart($('dd-chart').getContext('2d'), cfg);
+  }
+}
+
+// ── Portfolio Allocation Donut ──────��────────────────────────────────────────
+function renderAllocation(events, port) {
+  if (!port?.positions || !Object.keys(port.positions).length) {
+    $('alloc-badge').textContent = 'No positions';
+    return;
+  }
+
+  const lastPx = {};
+  events.filter(e => e.event_type === 'SCREEN_RESULT').forEach(e => { lastPx[e.symbol] = e.price; });
+
+  const slices = [];
+  let totalVal = port.cash;
+  for (const [sym, pos] of Object.entries(port.positions)) {
+    const px  = lastPx[sym] ?? pos.avg_cost;
+    const val = pos.shares * px;
+    totalVal += val;
+    slices.push({ label: sym, value: val });
+  }
+  slices.push({ label: 'Cash', value: port.cash });
+
+  const labels = slices.map(s => s.label + ' ' + (s.value / totalVal * 100).toFixed(0) + '%');
+  const data   = slices.map(s => s.value);
+  const colors = ['#3fb950', '#58a6ff', '#bc8cff', '#d29922', '#f85149', '#79c0ff'];
+
+  $('alloc-badge').textContent = slices.length + ' slices';
+
+  const cfg = {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{
+        data,
+        backgroundColor: colors.slice(0, slices.length),
+        borderColor: '#161b22',
+        borderWidth: 2,
+      }],
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      cutout: '60%',
+      plugins: {
+        legend: {
+          position: 'right',
+          labels: { color: '#7d8590', font: { family: 'monospace', size: 11 }, padding: 10 },
+        },
+        tooltip: {
+          backgroundColor: '#1c2330', borderColor: '#30363d', borderWidth: 1,
+          titleColor: '#e6edf3', bodyColor: '#7d8590',
+          callbacks: { label: c => ' ' + thb(c.raw) + ' (' + (c.raw / totalVal * 100).toFixed(1) + '%)' },
+        },
+      },
+    },
+  };
+
+  if (_allocChart) {
+    _allocChart.data    = cfg.data;
+    _allocChart.options = cfg.options;
+    _allocChart.update();
+  } else {
+    _allocChart = new Chart($('alloc-chart').getContext('2d'), cfg);
   }
 }
 
@@ -424,31 +795,31 @@ function renderPositions(events, port) {
     return;
   }
 
-  // Latest screened price per symbol
   const lastPx = {};
   events.filter(e => e.event_type === 'SCREEN_RESULT').forEach(e => { lastPx[e.symbol] = e.price; });
 
-  // Most-recent AI_ANALYSIS per symbol (last write wins = chronologically latest)
   const currentAi = {};
   events.filter(e => e.event_type === 'AI_ANALYSIS')
         .forEach(e => { currentAi[e.symbol] = e; });
 
-  // Entry conviction: for each BUY trade, find the AI_ANALYSIS for that symbol
-  // that occurred closest-in-time BEFORE the trade timestamp.
+  // Entry conviction from BUY trades (TRADE_EXECUTED or legacy BUY)
   const entryConv = {};
-  events.filter(e => e.event_type === 'TRADE_EXECUTED' && e.action === 'BUY')
-        .forEach(trade => {
-          const sym     = trade.symbol;
-          const tradeTs = new Date(trade.timestamp).getTime();
-          const prior   = events
-            .filter(e => e.event_type === 'AI_ANALYSIS' && e.symbol === sym
-                      && new Date(e.timestamp).getTime() <= tradeTs)
-            .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-          if (prior.length) entryConv[sym] = prior[0];
-        });
+  events.filter(e =>
+    (e.event_type === 'TRADE_EXECUTED' && e.action === 'BUY') ||
+    e.event_type === 'BUY'
+  ).forEach(trade => {
+    const sym     = trade.symbol;
+    const tradeTs = new Date(trade.timestamp).getTime();
+    const prior   = events
+      .filter(e => e.event_type === 'AI_ANALYSIS' && e.symbol === sym
+                && new Date(e.timestamp).getTime() <= tradeTs)
+      .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    if (prior.length) entryConv[sym] = prior[0];
+  });
 
   const rows = Object.entries(port.positions).map(([sym, pos]) => {
     const cur  = lastPx[sym] ?? pos.avg_cost;
+    const val  = cur * pos.shares;
     const pnl  = (cur - pos.avg_cost) * pos.shares;
     const pp   = (cur / pos.avg_cost - 1) * 100;
     const sl   = pos.avg_cost * (1 - (pos.stop_loss_pct ?? .08));
@@ -456,7 +827,11 @@ function renderPositions(events, port) {
     const ai   = currentAi[sym];
     const en   = entryConv[sym];
 
-    // ── AI SIGNAL cell ───────────────────────────────────────────────────────
+    // Stop-loss proximity
+    const slDist = (cur - sl) / sl * 100;
+    const slClass = slDist > 10 ? 'sl-green' : slDist > 5 ? 'sl-yellow' : 'sl-red';
+
+    // AI SIGNAL cell
     let sigCell;
     if (!ai) {
       sigCell = `<td style="color:var(--dim);font-family:var(--mono);font-size:11px;
@@ -471,14 +846,14 @@ function renderPositions(events, port) {
                              white-space:nowrap;text-align:center">${action}&nbsp;${conviction}/10</td>`;
     }
 
-    // ── ACTION badge cell ────────────────────────────────────────────────────
+    // ACTION badge cell
     let actCell;
     if (!ai) {
       actCell = `<td><span class="tag th">NO DATA</span></td>`;
     } else {
       const newConv = ai.conviction;
       const oldConv = en ? en.conviction : newConv;
-      const drop    = oldConv - newConv;   // positive = fell, negative = rose
+      const drop    = oldConv - newConv;
 
       let badgeLabel, badgeClass;
       if (ai.action === 'AVOID' || newConv <= 3 || drop >= 3) {
@@ -490,10 +865,10 @@ function renderPositions(events, port) {
       }
 
       const changeText = drop === 0
-        ? `conv: ${oldConv} → ${newConv} (no change)`
+        ? `conv: ${oldConv} \u2192 ${newConv} (no change)`
         : drop > 0
-          ? `conv: ${oldConv} → ${newConv} (▼${drop})`
-          : `conv: ${oldConv} → ${newConv} (▲${Math.abs(drop)})`;
+          ? `conv: ${oldConv} \u2192 ${newConv} (\u25BC${drop})`
+          : `conv: ${oldConv} \u2192 ${newConv} (\u25B2${Math.abs(drop)})`;
 
       actCell = `<td style="white-space:nowrap">
         <span class="tag ${badgeClass}">${badgeLabel}</span>
@@ -507,9 +882,10 @@ function renderPositions(events, port) {
       <td>${pos.shares.toLocaleString()}</td>
       <td>${thb(pos.avg_cost)}</td>
       <td>${thb(cur)}</td>
+      <td class="b" style="color:var(--blue)">${thb(val)}</td>
       <td class="${pnl >= 0 ? 'g' : 'r'}">${pnl >= 0 ? '+' : ''}${thb(pnl)}</td>
       <td class="${pp  >= 0 ? 'g' : 'r'}">${pct(pp)}</td>
-      <td class="r">${thb(sl)}</td>
+      <td style="white-space:nowrap"><span class="sl-dot ${slClass}"></span>${thb(sl)}<br><span style="font-size:10px;color:var(--dim)">(${slDist.toFixed(1)}% above)</span></td>
       <td>${d}d</td>
       ${sigCell}
       ${actCell}
@@ -517,65 +893,294 @@ function renderPositions(events, port) {
   });
 
   badge.textContent = rows.length;
-  // min-width keeps columns from squishing; overflow-x:auto on .tbl-box handles scroll
   wrap.innerHTML = `
-    <table style="min-width:960px">
+    <table style="min-width:1060px">
       <thead><tr>
         <th>Symbol</th><th>Shares</th><th>Avg Cost</th><th>Last Price</th>
-        <th>P&amp;L</th><th>P&amp;L %</th><th>Stop-loss</th><th>Days</th>
+        <th>Value</th><th>P&amp;L</th><th>P&amp;L %</th><th>Stop-loss</th><th>Days</th>
         <th>AI Signal</th><th>Action</th>
       </tr></thead>
       <tbody>${rows.join('')}</tbody>
     </table>`;
 }
 
-// ── Trade History ─────────────────────────────────────────────────────────────
-function renderTrades(events) {
-  const wrap   = $('trades-wrap');
-  const trades = events.filter(e => e.event_type === 'TRADE_EXECUTED').slice(-20).reverse();
+// ── Trade History ──���──────────────────────────────────────────────────────────
+let _allTrades = [];
+let _tradesSorted = [];
+let _tradesPage = 0;
+let _tradesSortCol = 'timestamp';
+let _tradesSortDir = 'desc';
+let _expandedTradeId = null;
 
-  if (!trades.length) {
-    wrap.innerHTML = '<div class="empty">No trades executed yet</div>';
+function buildTradeList(events, trades, port) {
+  // Primary: JSONL BUY/SELL/TRADE_EXECUTED events
+  const jsonlTrades = events.filter(e =>
+    e.event_type === 'TRADE_EXECUTED' || e.event_type === 'BUY' || e.event_type === 'SELL'
+  ).map(e => ({
+    ...e,
+    _action: e.type || e.action || e.event_type,
+    _ts: new Date(e.timestamp).getTime(),
+  }));
+
+  // Fallback: paper_trades.json if JSONL has none
+  if (!jsonlTrades.length && trades && trades.length) {
+    _allTrades = trades.map(t => ({
+      ...t,
+      _action: t.type || 'BUY',
+      _ts: new Date(t.timestamp).getTime(),
+    }));
+  } else {
+    _allTrades = jsonlTrades;
+  }
+
+  // Latest screened prices for unrealized P&L
+  const lastPx = {};
+  events.filter(e => e.event_type === 'SCREEN_RESULT').forEach(e => { lastPx[e.symbol] = e.price; });
+
+  // AI analyses map (for detail panel)
+  const aiMap = {};
+  events.filter(e => e.event_type === 'AI_ANALYSIS').forEach(e => {
+    if (!aiMap[e.symbol]) aiMap[e.symbol] = [];
+    aiMap[e.symbol].push(e);
+  });
+
+  // Screener runs (for linking)
+  const screenRuns = events.filter(e => e.event_type === 'SCREEN_START' || e.event_type === 'WEEKLY_SCREEN');
+
+  const openPos = port?.positions || {};
+
+  _allTrades.forEach((t, i) => {
+    t._id = i;
+    const buy = t._action === 'BUY';
+
+    // P&L
+    if (!buy && t.realized_pl != null) {
+      t._pl = t.realized_pl;
+      t._plType = 'realized';
+    } else if (buy && openPos[t.symbol]) {
+      const cur = lastPx[t.symbol] ?? t.price;
+      t._pl = (cur - t.price) * t.shares;
+      t._plType = 'unrealized';
+      t._curPrice = cur;
+    } else {
+      t._pl = null;
+      t._plType = null;
+    }
+
+    // Find closest AI analysis before trade
+    const sym = t.symbol;
+    const ts  = t._ts;
+    const analyses = (aiMap[sym] || []).filter(a => new Date(a.timestamp).getTime() <= ts);
+    t._ai = analyses.length ? analyses[analyses.length - 1] : null;
+
+    // Find closest screener run before trade
+    const runs = screenRuns.filter(r => new Date(r.timestamp).getTime() <= ts);
+    t._screenRun = runs.length ? runs[runs.length - 1] : null;
+  });
+
+  // Populate symbol filter
+  const syms = [...new Set(_allTrades.map(t => t.symbol))].sort();
+  const sel = $('tf-sym');
+  const curVal = sel.value;
+  sel.innerHTML = '<option value="">All</option>' + syms.map(s =>
+    `<option value="${s}"${s === curVal ? ' selected' : ''}>${s}</option>`
+  ).join('');
+}
+
+function getFilteredTrades() {
+  const symF    = $('tf-sym').value;
+  const actionF = $('tf-action').value;
+  const fromF   = $('tf-from').value;
+  const toF     = $('tf-to').value;
+
+  let list = _allTrades;
+  if (symF)    list = list.filter(t => t.symbol === symF);
+  if (actionF) list = list.filter(t => t._action === actionF);
+  if (fromF)   list = list.filter(t => isoDate(t.timestamp) >= fromF);
+  if (toF)     list = list.filter(t => isoDate(t.timestamp) <= toF);
+
+  // Sort
+  list = [...list].sort((a, b) => {
+    let va, vb;
+    switch (_tradesSortCol) {
+      case 'symbol': va = a.symbol; vb = b.symbol; break;
+      case 'action': va = a._action; vb = b._action; break;
+      case 'shares': va = a.shares; vb = b.shares; break;
+      case 'price':  va = a.price; vb = b.price; break;
+      case 'pl':     va = a._pl ?? -Infinity; vb = b._pl ?? -Infinity; break;
+      default:       va = a._ts; vb = b._ts;
+    }
+    if (typeof va === 'string') return _tradesSortDir === 'asc' ? va.localeCompare(vb) : vb.localeCompare(va);
+    return _tradesSortDir === 'asc' ? va - vb : vb - va;
+  });
+
+  _tradesSorted = list;
+  return list;
+}
+
+function renderTradesPage() {
+  const wrap = $('trades-wrap');
+  const list = getFilteredTrades();
+
+  const totalPages = Math.max(1, Math.ceil(list.length / TRADES_PER_PAGE));
+  if (_tradesPage >= totalPages) _tradesPage = totalPages - 1;
+  if (_tradesPage < 0) _tradesPage = 0;
+
+  const start = _tradesPage * TRADES_PER_PAGE;
+  const page  = list.slice(start, start + TRADES_PER_PAGE);
+
+  $('trades-badge').textContent = list.length + ' trade' + (list.length === 1 ? '' : 's');
+
+  if (!page.length) {
+    wrap.innerHTML = '<div class="empty">No trades match filters</div>';
+    $('trades-pager').style.display = 'none';
     return;
   }
 
-  const rows = trades.map(t => {
-    const buy = t.action === 'BUY';
-    // For sells, P&L = portfolio_value_after - (portfolio_value_after + cost - fee) ≈ rough; we use cost as cost basis
-    const pnlVal = buy ? null : t.portfolio_value_after - (t.portfolio_value_after - (t.cost - t.fee) + t.cost);
-    // Actually simpler: the logger logs portfolio_value_after which is post-sell portfolio.
-    // Best we can surface is the cost field (original cost basis for SELLs).
-    const pnlCell = buy
-      ? `<span style="color:var(--dim)">—</span>`
-      : `<span class="${(t.portfolio_value_after - t.cost + t.fee) >= 0 ? 'g' : 'r'}">see log</span>`;
-    return `<tr>
+  const sortIcon = col => {
+    if (_tradesSortCol !== col) return '';
+    return _tradesSortDir === 'asc' ? ' sorted-asc' : ' sorted-desc';
+  };
+
+  let html = `<table>
+    <thead><tr>
+      <th class="sortable${sortIcon('symbol')}" onclick="sortTrades('symbol')">Symbol</th>
+      <th class="sortable${sortIcon('timestamp')}" onclick="sortTrades('timestamp')">Date</th>
+      <th class="sortable${sortIcon('action')}" onclick="sortTrades('action')">Action</th>
+      <th class="sortable${sortIcon('shares')}" onclick="sortTrades('shares')">Shares</th>
+      <th class="sortable${sortIcon('price')}" onclick="sortTrades('price')">Price</th>
+      <th class="sortable${sortIcon('pl')}" onclick="sortTrades('pl')">P&amp;L</th>
+      <th>Conv.</th><th>Reason</th>
+    </tr></thead>
+    <tbody>`;
+
+  for (const t of page) {
+    const buy = t._action === 'BUY';
+    const conv = t.conviction ?? t.ai_conviction ?? '';
+
+    let plCell;
+    if (t._plType === 'realized') {
+      plCell = `<span class="${t._pl >= 0 ? 'g' : 'r'}">${t._pl >= 0 ? '+' : ''}${thb(t._pl)}</span>`;
+    } else if (t._plType === 'unrealized') {
+      plCell = `<span class="${t._pl >= 0 ? 'g' : 'r'}" title="unrealized">${t._pl >= 0 ? '+' : ''}${thb(t._pl)} *</span>`;
+    } else {
+      plCell = `<span style="color:var(--dim)">\u2014</span>`;
+    }
+
+    html += `<tr class="trade-row" onclick="toggleTradeDetail(${t._id})">
       <td>${t.symbol}</td>
       <td style="color:var(--muted);font-family:var(--mono)">${dt(t.timestamp)}</td>
-      <td><span class="tag ${buy ? 'tb' : 'ts'}">${t.action}</span></td>
+      <td><span class="tag ${buy ? 'tb' : 'ts'}">${t._action}</span></td>
       <td>${t.shares.toLocaleString()}</td>
       <td>${thb(t.price)}</td>
-      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;font-family:var(--sans);font-size:11px;color:var(--muted);text-align:right">${(t.reason||'').substring(0,55)}</td>
+      <td>${plCell}</td>
+      <td style="text-align:center;font-family:var(--mono);color:var(--purple)">${conv ? conv + '/10' : '\u2014'}</td>
+      <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;font-family:var(--sans);font-size:11px;color:var(--muted);text-align:right">${(t.reason||'').substring(0,50)}</td>
     </tr>`;
-  });
 
-  wrap.innerHTML = `
-    <table>
-      <thead><tr>
-        <th>Symbol</th><th>Date</th><th>Action</th>
-        <th>Shares</th><th>Price</th><th>Reason</th>
-      </tr></thead>
-      <tbody>${rows.join('')}</tbody>
-    </table>`;
+    // Detail row (hidden by default)
+    const isOpen = _expandedTradeId === t._id;
+    const totalCost = t.total_cost ?? (t.shares * t.price + (t.fee ?? 0));
+    const ai = t._ai;
+    const aiThesis = ai?.thesis || 'No AI analysis available for this trade.';
+    const aiConv = ai?.conviction ?? '\u2014';
+    const trigger = t.reason || t.event_type || '\u2014';
+    const screenTs = t._screenRun ? dt(t._screenRun.timestamp) : '\u2014';
+
+    let plDetail = '\u2014';
+    if (t._plType === 'realized') {
+      plDetail = `<span class="${t._pl >= 0 ? 'g' : 'r'}">${t._pl >= 0 ? '+' : ''}${thb(t._pl)}</span> (realized)`;
+    } else if (t._plType === 'unrealized') {
+      plDetail = `<span class="${t._pl >= 0 ? 'g' : 'r'}">${t._pl >= 0 ? '+' : ''}${thb(t._pl)}</span> (unrealized, current: ${thb(t._curPrice ?? t.price)})`;
+    }
+
+    html += `<tr class="trade-detail${isOpen ? ' open' : ''}" id="td-${t._id}">
+      <td colspan="8">
+        <div class="td-grid">
+          <div><div class="td-label">Symbol</div><div class="td-val">${t.symbol}</div></div>
+          <div><div class="td-label">Date</div><div class="td-val">${dt(t.timestamp)}</div></div>
+          <div><div class="td-label">Action</div><div class="td-val">${t._action}</div></div>
+          <div><div class="td-label">Price</div><div class="td-val">${thb(t.price)}</div></div>
+          <div><div class="td-label">Shares</div><div class="td-val">${t.shares}</div></div>
+          <div><div class="td-label">Total Cost</div><div class="td-val">${thb(totalCost)}</div></div>
+          <div><div class="td-label">AI Conviction</div><div class="td-val" style="color:var(--purple)">${aiConv}/10</div></div>
+          <div><div class="td-label">P&amp;L</div><div class="td-val">${plDetail}</div></div>
+          <div><div class="td-label">Trigger</div><div class="td-val">${trigger}</div></div>
+          <div><div class="td-label">Screener Run</div><div class="td-val">${screenTs}</div></div>
+        </div>
+        <div class="td-reason">
+          <div class="td-label" style="margin-bottom:4px">AI Reasoning</div>
+          <p>${aiThesis}</p>
+        </div>
+      </td>
+    </tr>`;
+  }
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
+
+  // Pager
+  const pager = $('trades-pager');
+  if (list.length > TRADES_PER_PAGE) {
+    pager.style.display = 'flex';
+    $('trades-pager-info').textContent = `Showing ${start + 1}\u2013${Math.min(start + TRADES_PER_PAGE, list.length)} of ${list.length} trades`;
+    $('tp-prev').disabled = _tradesPage === 0;
+    $('tp-next').disabled = _tradesPage >= totalPages - 1;
+  } else {
+    pager.style.display = 'none';
+  }
 }
 
-// ── Signal Heatmap ────────────────────────────────────────────────────────────
+function sortTrades(col) {
+  if (_tradesSortCol === col) {
+    _tradesSortDir = _tradesSortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    _tradesSortCol = col;
+    _tradesSortDir = 'desc';
+  }
+  _tradesPage = 0;
+  renderTradesPage();
+}
+
+function tradesPgPrev() { _tradesPage = Math.max(0, _tradesPage - 1); renderTradesPage(); }
+function tradesPgNext() { _tradesPage++; renderTradesPage(); }
+
+function toggleTradeDetail(id) {
+  if (_expandedTradeId === id) {
+    _expandedTradeId = null;
+  } else {
+    // Close previous
+    if (_expandedTradeId !== null) {
+      const prev = $('td-' + _expandedTradeId);
+      if (prev) prev.classList.remove('open');
+    }
+    _expandedTradeId = id;
+  }
+  const el = $('td-' + id);
+  if (el) el.classList.toggle('open');
+}
+
+function renderTrades(events, trades, port) {
+  buildTradeList(events, trades, port);
+
+  // Set default date range: last 30 days
+  if (!$('tf-from').value) {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    // Don't set default — show all trades since there are few
+  }
+
+  renderTradesPage();
+}
+
+// ── Signal Heatmap ────────────────────────────────────────���───────────────────
 function renderHeatmap(events) {
   const grid = $('heat-grid');
 
   const starts = events.filter(e => e.event_type === 'SCREEN_START');
   if (!starts.length) {
     grid.innerHTML = '<div class="empty" style="width:100%">Run the screener to populate signals</div>';
-    $('screen-ts').textContent = '—';
+    $('screen-ts').textContent = '\u2014';
     return;
   }
 
@@ -607,16 +1212,16 @@ function renderHeatmap(events) {
       <div class="sc-sym">${r.symbol}</div>
       <div class="sc-score ${sc}">${s.toFixed(0)}</div>
       <div class="sc-meta">${r.quant_signal}</div>
-      <div class="sc-meta">${r.dcf_verdict} · ฿${r.price}</div>
+      <div class="sc-meta">${r.dcf_verdict} \u00b7 \u0E3F${r.price}</div>
       ${ai ? `<div class="sc-ai">
         <span class="tag ${ai.action === 'BUY' ? 'tb' : ai.action === 'SELL' ? 'ts' : 'th'}">${ai.action}</span>
-        <span class="sc-conv">⚡${ai.conviction}/10</span>
+        <span class="sc-conv">\u26A1${ai.conviction}/10</span>
       </div>` : ''}
     </div>`;
   }).join('');
 }
 
-// ── AI Insights ───────────────────────────────────────────────────────────────
+// ── AI Insights ────���──────────────────────────────────────────────────────────
 function renderInsights(events) {
   const el  = $('ins-list');
   const ais = events.filter(e => e.event_type === 'AI_ANALYSIS').slice(-3).reverse();
@@ -628,51 +1233,153 @@ function renderInsights(events) {
       <div class="ins-head">
         <span class="ins-sym">${a.symbol}</span>
         <span class="tag ${a.action === 'BUY' ? 'tb' : a.action === 'SELL' ? 'ts' : 'th'}">${a.action}</span>
-        <span class="ins-conv">⚡${a.conviction}/10</span>
+        <span class="ins-conv">\u26A1${a.conviction}/10</span>
         <span class="ins-time">${dt(a.timestamp)}</span>
       </div>
       <p class="ins-thesis">${a.thesis || 'No thesis provided.'}</p>
-      ${risks.length ? `<div class="ins-risks">${risks.map(r => `<span class="risk-chip">⚠ ${r}</span>`).join('')}</div>` : ''}
+      ${risks.length ? `<div class="ins-risks">${risks.map(r => `<span class="risk-chip">\u26A0 ${r}</span>`).join('')}</div>` : ''}
     </div>`;
   }).join('');
 }
 
-// ── Activity Log ──────────────────────────────────────────────────────────────
-function renderLog(events) {
-  const el   = $('act-log');
-  const last = events.slice(-20).reverse();
-  if (!last.length) { el.innerHTML = '<div class="empty">No events logged yet</div>'; return; }
+// ── Activity Log ─────────────────────────────────────��────────────────────────
+
+// Event types that are always auto (not triggered by user from CLI)
+const AUTO_EVENT_TYPES = new Set([
+  'PORTFOLIO_SNAPSHOT', 'WEEKLY_SCREEN',
+]);
+
+// Legacy BUY/SELL events from historical simulation data (no source field)
+// are always auto — they were part of simulated weekly screen batches.
+// Real CLI-triggered trades use TRADE_EXECUTED event_type.
+const LEGACY_AUTO_TYPES = new Set(['BUY', 'SELL']);
+
+let _logFilter = 'manual';
+let _logEvents = [];
+let _logPage = 0;
+
+function inferSource(e) {
+  if (e.source) return e.source;
+  if (AUTO_EVENT_TYPES.has(e.event_type)) return 'auto';
+  // Legacy BUY/SELL events without source field are from historical simulation
+  if (LEGACY_AUTO_TYPES.has(e.event_type) && !e.source) return 'auto';
+  return 'manual';
+}
+
+function setLogFilter(filter) {
+  _logFilter = filter;
+  _logPage = 0;
+  document.querySelectorAll('.log-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.filter === filter);
+  });
+  renderLogPage();
+}
+
+function getFilteredLog() {
+  let filtered = _logEvents;
+  if (_logFilter === 'manual') {
+    filtered = filtered.filter(e => inferSource(e) === 'manual');
+  }
+
+  const typeF = $('lf-type').value;
+  const fromF = $('lf-from').value;
+  const toF   = $('lf-to').value;
+
+  if (typeF) filtered = filtered.filter(e => e.event_type === typeF);
+  if (fromF) filtered = filtered.filter(e => isoDate(e.timestamp) >= fromF);
+  if (toF)   filtered = filtered.filter(e => isoDate(e.timestamp) <= toF);
+
+  return filtered;
+}
+
+function renderLogPage() {
+  const el = $('act-log');
+  const filtered = getFilteredLog();
+  const reversed = [...filtered].reverse(); // newest first
+
+  const totalPages = Math.max(1, Math.ceil(reversed.length / LOGS_PER_PAGE));
+  if (_logPage >= totalPages) _logPage = totalPages - 1;
+  if (_logPage < 0) _logPage = 0;
+
+  const start = _logPage * LOGS_PER_PAGE;
+  const page  = reversed.slice(start, start + LOGS_PER_PAGE);
+
+  const badge = $('log-badge');
+  badge.textContent = filtered.length + ' event' + (filtered.length === 1 ? '' : 's');
+
+  if (!page.length) {
+    el.innerHTML = _logFilter === 'manual'
+      ? '<div class="empty">No manual actions yet</div>'
+      : '<div class="empty">No events logged yet</div>';
+    $('log-pager').style.display = 'none';
+    return;
+  }
 
   const summary = e => {
     switch (e.event_type) {
       case 'SCREEN_START':        return `Universe: ${e.universe_size} stocks | AI: ${e.use_ai}`;
-      case 'SCREEN_RESULT':       return `${e.symbol}  score=${e.composite_score}  ${e.quant_signal}  ฿${e.price}`;
-      case 'AI_ANALYSIS':         return `${e.symbol} → ${e.action}  conviction=${e.conviction}/10`;
-      case 'TRADE_EXECUTED':      return `${e.action} ${e.symbol} ×${e.shares} @ ฿${e.price}  portfolio=฿${e.portfolio_value_after}`;
-      case 'STOP_LOSS_CHECK':     return `${e.positions_checked} pos checked · triggered: [${(e.triggered||[]).join(', ')||'none'}]`;
-      case 'STOP_LOSS_TRIGGERED': return `${e.symbol}  exit ฿${e.exit_price}  P&L ฿${e.pnl_thb} (${e.pnl_pct?.toFixed(1)}%)`;
-      case 'PORTFOLIO_SNAPSHOT':  return `total=฿${e.total_value?.toFixed(2)}  cash=฿${e.cash?.toFixed(2)}  ret=${e.total_return_pct?.toFixed(2)}%`;
-      case 'ERROR':               return `[${e.source}] ${e.message}`;
+      case 'SCREEN_RESULT':       return `${e.symbol}  score=${e.composite_score}  ${e.quant_signal}  \u0E3F${e.price}`;
+      case 'AI_ANALYSIS':         return `${e.symbol} \u2192 ${e.action}  conviction=${e.conviction}/10`;
+      case 'TRADE_EXECUTED':      return `${e.action} ${e.symbol} \u00d7${e.shares} @ \u0E3F${e.price}  portfolio=\u0E3F${e.portfolio_value_after}`;
+      case 'BUY':                 return `BUY ${e.symbol} \u00d7${e.shares} @ \u0E3F${e.price}  cost=\u0E3F${e.total_cost}`;
+      case 'SELL':                return `SELL ${e.symbol} \u00d7${e.shares} @ \u0E3F${e.price}`;
+      case 'STOP_LOSS_CHECK':     return `${e.positions_checked} pos checked \u00b7 triggered: [${(e.triggered||[]).join(', ')||'none'}]`;
+      case 'STOP_LOSS_TRIGGERED': return `${e.symbol}  exit \u0E3F${e.exit_price}  P&L \u0E3F${e.pnl_thb} (${e.pnl_pct?.toFixed(1)}%)`;
+      case 'TAKE_PROFIT_TRIGGERED': return `${e.symbol}  exit \u0E3F${e.exit_price}  P&L \u0E3F${e.pnl_thb} (+${e.pnl_pct?.toFixed(1)}%)  held ${e.holding_days}d`;
+      case 'CONVICTION_DROP_SELL': return `${e.symbol}  conviction ${e.old_conviction}\u2192${e.new_conviction}  P&L \u0E3F${e.pnl_thb} (${e.pnl_pct?.toFixed(1)}%)`;
+      case 'XD_GUARD_TRIGGERED': return `${e.symbol}  stop suppressed (XD date: ${e.xd_date})  price \u0E3F${e.current_price}`;
+      case 'PORTFOLIO_SNAPSHOT':  return `total=\u0E3F${e.total_value?.toFixed(2)}  cash=\u0E3F${e.cash?.toFixed(2)}  ret=${e.total_return_pct?.toFixed(2)}%`;
+      case 'WEEKLY_SCREEN':       return `${(e.stocks||[]).length} stocks screened`;
+      case 'ERROR':               return `[${e.error_source || 'unknown'}] ${e.message}`;
       default:                    return JSON.stringify(e).substring(0, 90);
     }
   };
 
-  el.innerHTML = last.map(e => `
+  const srcBadge = e => {
+    const s = inferSource(e);
+    return s === 'auto'
+      ? '<span style="font-size:9px;color:var(--dim);margin-left:2px">auto</span>'
+      : '';
+  };
+
+  el.innerHTML = page.map(e => `
     <div class="log-row">
       <span class="log-ts">${tm(e.timestamp)}</span>
-      <span class="log-ev ${e.event_type}">${e.event_type}</span>
+      <span class="log-ev ${e.event_type}">${e.event_type}${srcBadge(e)}</span>
       <span class="log-msg">${summary(e)}</span>
     </div>`).join('');
+
+  // Pager
+  const pager = $('log-pager');
+  if (reversed.length > LOGS_PER_PAGE) {
+    pager.style.display = 'flex';
+    $('log-pager-info').textContent = `Showing ${start + 1}\u2013${Math.min(start + LOGS_PER_PAGE, reversed.length)} of ${reversed.length} events`;
+    $('lp-prev').disabled = _logPage === 0;
+    $('lp-next').disabled = _logPage >= totalPages - 1;
+  } else {
+    pager.style.display = 'none';
+  }
 }
 
-// ── Master ────────────────────────────────────────────────────────────────────
+function logPgPrev() { _logPage = Math.max(0, _logPage - 1); renderLogPage(); }
+function logPgNext() { _logPage++; renderLogPage(); }
+
+function renderLog(events) {
+  _logEvents = events;
+  renderLogPage();
+}
+
+// ── Master ─────���──────────────────────────────────────���───────────────────────
 async function refresh() {
   try {
-    const { events, port } = await load();
+    const { events, port, trades } = await load();
     renderHeader(events, port);
+    renderPerfMetrics(events, trades);
     renderEquity(events);
+    renderDrawdown(events);
+    renderAllocation(events, port);
     renderPositions(events, port);
-    renderTrades(events);
+    renderTrades(events, trades, port);
     renderHeatmap(events);
     renderInsights(events);
     renderLog(events);
@@ -682,7 +1389,7 @@ async function refresh() {
   }
 }
 
-// ── Bootstrap ─────────────────────────────────────────────────────────────────
+// ── Bootstrap ─────────────────────────────��───────────────────────────────────
 function $(id) { return document.getElementById(id); }
 
 refresh();
@@ -692,8 +1399,8 @@ setInterval(() => {
   if (_countdown === 0) _countdown = TICK_MS / 1000;
   const el = $('upd-ts');
   if (el && !el.textContent.startsWith('Error')) {
-    const base = el.textContent.replace(/ · next.*/,'');
-    el.textContent = base + ' · next in ' + _countdown + 's';
+    const base = el.textContent.replace(/ \u00b7 next.*/,'');
+    el.textContent = base + ' \u00b7 next in ' + _countdown + 's';
   }
 }, 1000);
 </script>

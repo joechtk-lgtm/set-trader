@@ -10,6 +10,63 @@ Usage:
 import os
 import sys
 import json
+import signal
+import subprocess
+import webbrowser
+
+PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
+DASHBOARD_PID_FILE = os.path.join(PROJECT_DIR, ".dashboard.pid")
+DASHBOARD_PORT = 8080
+DASHBOARD_URL = f"http://localhost:{DASHBOARD_PORT}/dashboard/"
+
+
+def _pid_alive(pid):
+    """Check if a process with the given PID is still running."""
+    try:
+        os.kill(pid, 0)
+        return True
+    except (OSError, ProcessLookupError):
+        return False
+
+
+def open_dashboard():
+    """Start the dashboard server (or re-open if already running)."""
+    if os.path.exists(DASHBOARD_PID_FILE):
+        with open(DASHBOARD_PID_FILE) as f:
+            pid = int(f.read().strip())
+        if _pid_alive(pid):
+            print(f"\n  Dashboard already running (PID {pid}). Opening browser...")
+            webbrowser.open(DASHBOARD_URL)
+            return
+        else:
+            os.remove(DASHBOARD_PID_FILE)
+
+    proc = subprocess.Popen(
+        [sys.executable, "-m", "http.server", str(DASHBOARD_PORT)],
+        cwd=PROJECT_DIR,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    with open(DASHBOARD_PID_FILE, "w") as f:
+        f.write(str(proc.pid))
+    print(f"\n  Dashboard server started on port {DASHBOARD_PORT} (PID {proc.pid})")
+    webbrowser.open(DASHBOARD_URL)
+
+
+def close_dashboard():
+    """Stop the dashboard server."""
+    if not os.path.exists(DASHBOARD_PID_FILE):
+        print("\n  Dashboard is not running.")
+        return
+    with open(DASHBOARD_PID_FILE) as f:
+        pid = int(f.read().strip())
+    if _pid_alive(pid):
+        os.kill(pid, signal.SIGTERM)
+        print(f"\n  Dashboard server stopped (PID {pid}).")
+    else:
+        print("\n  Dashboard process was already dead.")
+    os.remove(DASHBOARD_PID_FILE)
+
 
 def check_setup():
     """Check that dependencies and API key are configured."""
@@ -50,6 +107,8 @@ def menu():
 ║  7. Check stop-losses + take-profits                     ║
 ║  8. View trade history                                   ║
 ║  9. Reset portfolio (start fresh)                        ║
+║  d. Open Dashboard                                       ║
+║  c. Close Dashboard                                      ║
 ║  0. Exit                                                 ║
 ╚══════════════════════════════════════════════════════════╝""")
     return input("\n  Choose option: ").strip()
@@ -68,33 +127,33 @@ def run():
 
         if choice == "1":
             from screener import screen_universe, auto_trade
-            opps = screen_universe(config.TEST_UNIVERSE, use_ai=True)
-            trader = PaperTrader()
+            opps = screen_universe(config.TEST_UNIVERSE, use_ai=True, source="manual")
+            trader = PaperTrader(source="manual")
             auto_trade(trader, opps, dry_run=False)
             trader.print_portfolio()
 
         elif choice == "2":
             from screener import screen_universe, auto_trade
-            opps = screen_universe(config.TEST_UNIVERSE, use_ai=False)
-            trader = PaperTrader()
+            opps = screen_universe(config.TEST_UNIVERSE, use_ai=False, source="manual")
+            trader = PaperTrader(source="manual")
             auto_trade(trader, opps, dry_run=True)  # dry run since no AI conviction
             trader.print_portfolio()
 
         elif choice == "3":
             from screener import screen_universe, auto_trade
             print("\n  Scanning SET50 (this will take ~2 minutes)...")
-            opps = screen_universe(config.SET50_UNIVERSE, use_ai=True, top_n=8)
-            trader = PaperTrader()
+            opps = screen_universe(config.SET50_UNIVERSE, use_ai=True, top_n=8, source="manual")
+            trader = PaperTrader(source="manual")
             auto_trade(trader, opps, dry_run=False)
             trader.print_portfolio()
 
         elif choice == "4":
-            trader = PaperTrader()
+            trader = PaperTrader(source="manual")
             trader.print_portfolio()
 
         elif choice == "5":
             # Manual BUY
-            trader = PaperTrader()
+            trader = PaperTrader(source="manual")
             symbol = input("\n  Ticker symbol (e.g. PTT): ").upper().strip()
             try:
                 from data.fetcher import get_current_price
@@ -119,7 +178,7 @@ def run():
 
         elif choice == "6":
             # Manual SELL
-            trader = PaperTrader()
+            trader = PaperTrader(source="manual")
             if not trader.portfolio["positions"]:
                 print("\n  No open positions.")
                 continue
@@ -146,7 +205,7 @@ def run():
                 print("  Cancelled.")
 
         elif choice == "7":
-            trader = PaperTrader()
+            trader = PaperTrader(source="manual")
             print("\n  Checking stop-losses and take-profits...")
             triggers = trader.check_stop_losses()
             if not triggers:
@@ -159,7 +218,7 @@ def run():
                         trader.sell(t['symbol'], t['price'], t['reason'])
 
         elif choice == "8":
-            trader = PaperTrader()
+            trader = PaperTrader(source="manual")
             trades = trader.trades
             if not trades:
                 print("\n  No trades yet.")
@@ -184,6 +243,12 @@ def run():
                     shutil.rmtree(config.DATA_DIR)
                     os.makedirs(config.DATA_DIR)
                 print("  Portfolio reset. Starting with 25,000 THB.")
+
+        elif choice.lower() == "d":
+            open_dashboard()
+
+        elif choice.lower() == "c":
+            close_dashboard()
 
         elif choice == "0":
             print("\n  Goodbye!\n")

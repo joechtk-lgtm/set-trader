@@ -86,10 +86,10 @@ class PaperTrader:
     Tracks positions, executes virtual trades, and logs everything.
     """
 
-    def __init__(self):
+    def __init__(self, source: str = "auto"):
         self.portfolio = self._load_portfolio()
         self.trades    = self._load_trades()
-        self.logger    = Logger()
+        self.logger    = Logger(source=source)
 
     # ── Persistence ──────────────────────────────────────────
 
@@ -408,6 +408,12 @@ class PaperTrader:
 
         # Run take-profit check (auto-sells, reuses cached prices)
         tp_count = self.check_take_profits(price_cache)
+
+        # Log the stop-loss check event
+        self.logger.stop_loss_check(
+            positions_checked=len(self.portfolio["positions"]) + len(triggered),
+            triggered=[t["symbol"] for t in triggered],
+        )
 
         print(f"  Stops triggered: {len(triggered)} | XD suppressed: {xd_suppressed} | "
               f"Take profits: {tp_count}")

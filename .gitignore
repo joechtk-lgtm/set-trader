@@ -1,17 +1,35 @@
+# ── Python ──────────────────────────────────────────────────
 venv/
 __pycache__/
 *.pyc
 *.pyo
-.env*
-.DS_Store
 *.egg-info/
 .pytest_cache/
 
-# Runtime data
+# ── Environment / Secrets ──────────────────────────────────
+.env*
+
+# ── OS / Editor ────────────────────────────────────────────
+.DS_Store
+.dashboard.pid
+.vscode/
+.idea/
+
+# ── Trading data (portfolios, trades, logs) ────────────────
+# Never push actual trading history, positions, or equity data
 data/*.json
+data/*.csv
+data/*.db
+data/*.sqlite*
 data/cache/
 logs/*.jsonl
 logs/*.log
+logs/*.csv
 
-# Generated outputs
+# ── Backtest outputs ───────────────────────────────────────
 backtest_results/
+
+# ── Catch-all for any SQLite databases ─────────────────────
+*.db
+*.sqlite
+*.sqlite3
