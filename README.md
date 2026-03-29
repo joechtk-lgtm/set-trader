@@ -138,4 +138,3 @@ Paper trading since March 2026.
 
 ---
 
-*Chayut (Joe) Teeradakorn | USC Marshall MBA 2026*
